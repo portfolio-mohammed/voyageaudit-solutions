@@ -1,18 +1,28 @@
 steps:
-  # Install ADK and deploy the full multi-agent suite to Cloud Run
-  - name: 'python:3.11-slim'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        pip install --upgrade pip
-        pip install google-adk
-        adk deploy cloud_run \
-          --project=$PROJECT_ID \
-          --region=europe-west1 \
-          --with_ui \
-          --service_name=voyageaudit-service \
-          .
+  # 1. Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: 
+      - 'build'
+      - '-t'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/voyageaudit-service:$COMMIT_SHA'
+      - '.'
 
-options:
-  logging: CLOUD_LOGGING_ONLY
+  # 2. Push Docker image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: 
+      - 'push'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/voyageaudit-service:$COMMIT_SHA'
+
+  # 3. Deploy to Cloud Run using gcloud SDK builder
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'voyageaudit-service'
+      - '--image=europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/voyageaudit-service:$COMMIT_SHA'
+      - '--region=europe-west1'
+      - '--platform=managed'
+
+images:
+  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/voyageaudit-service:$COMMIT_SHA'
