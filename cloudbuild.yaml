@@ -1,0 +1,18 @@
+steps:
+  # Install ADK and deploy the full multi-agent suite to Cloud Run
+  - name: 'python:3.11-slim'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        pip install --upgrade pip
+        pip install google-adk
+        adk deploy cloud_run \
+          --project=$PROJECT_ID \
+          --region=europe-west1 \
+          --with_ui \
+          --service_name=voyageaudit-service \
+          .
+
+options:
+  logging: CLOUD_LOGGING_ONLY
